@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { NavLink as RouterNavLink } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-
 import {
   Collapse,
   Container,
@@ -12,16 +11,13 @@ import {
   NavItem,
   NavLink,
   Button,
-  UncontrolledDropdown,
-  DropdownToggle,
-  DropdownMenu,
-  DropdownItem,
 } from "reactstrap";
-
 import { useAuth0 } from "@auth0/auth0-react";
+import { ChevronDown } from "lucide-react";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user, isAuthenticated, loginWithRedirect, logout } = useAuth0();
   const toggle = () => setIsOpen(!isOpen);
 
@@ -63,7 +59,9 @@ const NavBar = () => {
                 </NavItem>
               )}
             </Nav>
-            <Nav className="d-none d-md-block" navbar>
+
+            {/* Desktop Nav (Login / Profile Dropdown) */}
+            <Nav className="d-none d-md-block relative" navbar>
               {!isAuthenticated && (
                 <NavItem>
                   <Button
@@ -76,13 +74,13 @@ const NavBar = () => {
                   </Button>
                 </NavItem>
               )}
+
               {isAuthenticated && (
-                <UncontrolledDropdown nav inNavbar direction="start">
-                  <DropdownToggle
-                    nav
-                    caret
-                    id="profileDropDown"
-                    className="flex items-center gap-2"
+                <div className="relative">
+                  {/* Profile button */}
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-1 focus:outline-none"
                   >
                     <img
                       src={user.picture}
@@ -90,28 +88,41 @@ const NavBar = () => {
                       className="nav-user-profile rounded-circle"
                       width="50"
                     />
-                  </DropdownToggle>
-                  <DropdownMenu>
-                    <DropdownItem header>{user.name}</DropdownItem>
-                    <DropdownItem
-                      tag={RouterNavLink}
-                      to="/profile"
-                      className="dropdown-profile"
-                      activeClassName="router-link-exact-active"
+                    <ChevronDown
+                      className="text-gray-600 w-4 h-4"
+                    />
+                  </button>
+
+                  {/* Custom Dropdown */}
+                  {dropdownOpen && (
+                    <div
+                      className="absolute right-0 mt-2 max-w-96 bg-white border rounded-lg shadow-lg z-50"
+                      onMouseLeave={() => setDropdownOpen(false)}
                     >
-                      <FontAwesomeIcon icon="user" className="mr-3" /> Profile
-                    </DropdownItem>
-                    <DropdownItem
-                      id="qsLogoutBtn"
-                      onClick={() => logoutWithRedirect()}
-                    >
-                      <FontAwesomeIcon icon="power-off" className="mr-3" /> Log
-                      out
-                    </DropdownItem>
-                  </DropdownMenu>
-                </UncontrolledDropdown>
+                      <div className="px-4 py-2 border-b font-semibold text-gray-700 break-words">
+                        {user.name}
+                      </div>
+                      <RouterNavLink
+                        to="/profile"
+                        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <FontAwesomeIcon icon="user" className="mr-2" /> Profile
+                      </RouterNavLink>
+                      <button
+                        onClick={logoutWithRedirect}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        <FontAwesomeIcon icon="power-off" className="mr-2" />{" "}
+                        Log out
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </Nav>
+
+            {/* Mobile Nav (unchanged) */}
             {!isAuthenticated && (
               <Nav className="d-md-none" navbar>
                 <NavItem>

@@ -2,7 +2,15 @@ import { Container, Row, Col } from "reactstrap";
 
 import Loading from "../components/Loading";
 import { useAuth0, withAuthenticationRequired } from "@auth0/auth0-react";
-import { User, Mail, BadgeCheck, Hash, Signature } from "lucide-react";
+import {
+  User,
+  Signature,
+  Mail,
+  BadgeCheck,
+  Hash,
+  Phone,
+  Home,
+} from "lucide-react";
 
 export const ProfileComponent = () => {
   const { user } = useAuth0();
@@ -57,6 +65,22 @@ export const ProfileComponent = () => {
             <span className="font-medium">Sub:</span>
             <span className="truncate">{user.sub}</span>
           </li>
+
+          {user["https://tob/phone"] && (
+            <li className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Phone:</span>
+              <span>{user["https://tob/phone"]}</span>
+            </li>
+          )}
+
+          {user["https://tob/address"] && (
+            <li className="flex items-center gap-2">
+              <Home className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Address:</span>
+              <span>{user["https://tob/address"]}</span>
+            </li>
+          )}
         </ul>
       </Row>
     </Container>
