@@ -83,7 +83,11 @@ export const ProfileComponent = () => {
     try {
       setLoading(true);
       setMessage("");
-      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ phone, address }));
+
+      sessionStorage.setItem(
+        PENDING_KEY,
+        JSON.stringify({ phone, address, sub: user.sub })
+      );
 
       await loginWithRedirect({
         authorizationParams: {
@@ -110,8 +114,17 @@ export const ProfileComponent = () => {
     (async () => {
       try {
         setLoading(true);
-        const { phone: pendingPhone, address: pendingAddress } =
-          JSON.parse(pendingRaw);
+        const {
+          phone: pendingPhone,
+          address: pendingAddress,
+          sub: originalSub,
+        } = JSON.parse(pendingRaw);
+
+        // Prevent cross-account update
+        if (user.sub !== originalSub) {
+          setMessage("❌ Logged in as a different account. Update cancelled.");
+          return;
+        }
 
         await updateProfile({ phone: pendingPhone, address: pendingAddress });
         setMessage("✅ Saved and refreshed!");
@@ -124,7 +137,7 @@ export const ProfileComponent = () => {
         setLoading(false);
       }
     })();
-  }, []); // only once on mount
+  }, [user.sub]);
 
   return (
     <Container className="mb-5 max-w-screen-xl">
