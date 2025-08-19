@@ -78,27 +78,18 @@ export const ProfileComponent = () => {
       setLoading(true);
       setMessage("");
 
-      try {
-        // Try silent update
-        await updateProfile({ phone, address });
-        setMessage("✅ Saved!");
-        setIsEditing(false);
-      } catch (err) {
-        console.warn("Silent update failed, falling back to redirect:", err);
+      // Save pending changes before redirect
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ phone, address }));
 
-        // Save pending changes for after redirect
-        sessionStorage.setItem(PENDING_KEY, JSON.stringify({ phone, address }));
-
-        await loginWithRedirect({
-          authorizationParams: {
-            audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-            scope: "update:current_user_metadata",
-            redirect_uri: window.location.origin,
-            prompt: "login", // force fresh login/consent
-          },
-          appState: { returnTo: window.location.pathname },
-        });
-      }
+      await loginWithRedirect({
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+          scope: "update:current_user_metadata",
+          redirect_uri: window.location.origin,
+          prompt: "login", // always interactive
+        },
+        appState: { returnTo: window.location.pathname },
+      });
     } catch (err) {
       console.error(err);
       setMessage("❌ Error updating profile: " + err.message);
