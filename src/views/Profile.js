@@ -73,48 +73,32 @@ export const ProfileComponent = () => {
     setAddress(newClaims["https://tob/address"] || "");
   };
 
-  // Save handler (handles consent + sessionStorage if needed)
   const handleSave = async () => {
     try {
       setLoading(true);
       setMessage("");
 
       try {
-        // Try silent token request first
-        await getAccessTokenSilently({
-          authorizationParams: {
-            audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-            scope: "update:current_user_metadata",
-          },
-        });
-      } catch (silentErr) {
-        console.warn(
-          "Silent token acquisition failed, trying redirect",
-          silentErr
-        );
+        // Try silent update
+        await updateProfile({ phone, address });
+        setMessage("✅ Saved!");
+        setIsEditing(false);
+      } catch (err) {
+        console.warn("Silent update failed, falling back to redirect:", err);
 
-        // Save pending updates before redirect
+        // Save pending changes for after redirect
         sessionStorage.setItem(PENDING_KEY, JSON.stringify({ phone, address }));
 
-        // Trigger consent screen if silent fails
         await loginWithRedirect({
           authorizationParams: {
             audience: process.env.REACT_APP_AUTH0_AUDIENCE,
             scope: "update:current_user_metadata",
             redirect_uri: window.location.origin,
+            prompt: "login", // force fresh login/consent
           },
           appState: { returnTo: window.location.pathname },
         });
-        return;
       }
-
-      await updateProfile({ phone, address });
-
-      // Clear pending data if we saved successfully
-      sessionStorage.removeItem(PENDING_KEY);
-
-      setMessage("✅ Saved and refreshed!");
-      setIsEditing(false);
     } catch (err) {
       console.error(err);
       setMessage("❌ Error updating profile: " + err.message);
