@@ -22,17 +22,23 @@ export const ProfileComponent = () => {
     useAuth0();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [phone, setPhone] = useState(user["https://tob/phone"] || "");
-  const [address, setAddress] = useState(user["https://tob/address"] || "");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Load initial values from ID token claims
   useEffect(() => {
-    setPhone(user["https://tob/phone"] || "");
-    setAddress(user["https://tob/address"] || "");
-  }, [user]);
+    const loadClaims = async () => {
+      const claims = await getIdTokenClaims();
+      const account = claims?.account || {};
+      setPhone(account.phone || "");
+      setAddress(account.address || "");
+    };
+    loadClaims();
+  }, [getIdTokenClaims]);
 
-  const updateProfile = async (values) => {
+  const updateProfile = async ({ phone, address }) => {
     const token = await getAccessTokenSilently({
       authorizationParams: {
         audience: process.env.REACT_APP_AUTH0_AUDIENCE,
@@ -40,7 +46,6 @@ export const ProfileComponent = () => {
       },
     });
 
-    //  Update user_metadata via Auth0 Management API
     const response = await fetch(
       `https://${process.env.REACT_APP_AUTH0_DOMAIN}/api/v2/users/${user.sub}`,
       {
@@ -49,15 +54,17 @@ export const ProfileComponent = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_metadata: values }),
+        body: JSON.stringify({
+          user_metadata: {
+            account: { phone, address },
+          },
+        }),
       }
     );
 
     if (!response.ok) {
       const errData = await response.json();
-      throw new Error(
-        `Failed to update: ${errData.message || response.statusText}`
-      );
+      throw new Error(errData.message || response.statusText);
     }
 
     // Force silent token refresh to get updated claims
@@ -67,18 +74,15 @@ export const ProfileComponent = () => {
     });
 
     const newClaims = await getIdTokenClaims();
-
-    // Update local state with refreshed claims
-    setPhone(newClaims["https://tob/phone"] || "");
-    setAddress(newClaims["https://tob/address"] || "");
+    const account = newClaims?.account || {};
+    setPhone(account.phone || "");
+    setAddress(account.address || "");
   };
 
   const handleSave = async () => {
     try {
       setLoading(true);
       setMessage("");
-
-      // Save pending changes before redirect
       sessionStorage.setItem(PENDING_KEY, JSON.stringify({ phone, address }));
 
       await loginWithRedirect({
@@ -86,7 +90,7 @@ export const ProfileComponent = () => {
           audience: process.env.REACT_APP_AUTH0_AUDIENCE,
           scope: "update:current_user_metadata",
           redirect_uri: window.location.origin,
-          prompt: "login", // always interactive
+          prompt: "login",
         },
         appState: { returnTo: window.location.pathname },
       });
@@ -106,26 +110,21 @@ export const ProfileComponent = () => {
     (async () => {
       try {
         setLoading(true);
-        const pendingData = JSON.parse(pendingRaw);
-        const pendingPhone = pendingData.phone;
-        const pendingAddress = pendingData.address;
+        const { phone: pendingPhone, address: pendingAddress } =
+          JSON.parse(pendingRaw);
 
         await updateProfile({ phone: pendingPhone, address: pendingAddress });
         setMessage("✅ Saved and refreshed!");
         setIsEditing(false);
       } catch (e) {
         console.error(e);
-        setMessage(
-          "❌ Error applying your saved changes after authorization: " +
-            e.message
-        );
+        setMessage("❌ Error applying saved changes: " + e.message);
       } finally {
         sessionStorage.removeItem(PENDING_KEY);
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // only once on mount
 
   return (
     <Container className="mb-5 max-w-screen-xl">
@@ -227,23 +226,23 @@ export const ProfileComponent = () => {
               </>
             ) : (
               <>
-                {user["https://tob/phone"] && (
+                {phone && (
                   <li className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">Phone:</span>
-                    <span>{user["https://tob/phone"]}</span>
+                    <span>{phone}</span>
                   </li>
                 )}
 
-                {user["https://tob/address"] && (
+                {address && (
                   <li className="flex items-center gap-2">
                     <Home className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">Address:</span>
-                    <span>{user["https://tob/address"]}</span>
+                    <span>{address}</span>
                   </li>
                 )}
 
-                {user["https://tob/address"] || user["https://tob/address"] ? (
+                {(phone || address) && (
                   <li className="mt-2">
                     <button
                       onClick={() => setIsEditing(true)}
@@ -252,7 +251,7 @@ export const ProfileComponent = () => {
                       <Edit3 className="w-4 h-4" /> Edit
                     </button>
                   </li>
-                ) : null}
+                )}
               </>
             )}
           </ul>
