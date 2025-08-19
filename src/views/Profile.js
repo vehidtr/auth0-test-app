@@ -196,77 +196,46 @@ export const ProfileComponent = () => {
               <span className="truncate">{user.sub}</span>
             </li>
 
-            {isEditing ? (
-              <>
-                <li className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Phone:</span>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="flex-1 p-1 border rounded"
-                  />
-                </li>
+            <>
+              <li className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Phone:</span>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="flex-1 p-1 border rounded"
+                />
+              </li>
 
-                <li className="flex items-center gap-2">
-                  <Home className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Address:</span>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="flex-1 p-1 border rounded"
-                  />
-                </li>
+              <li className="flex items-center gap-2">
+                <Home className="w-4 h-4 text-gray-500" />
+                <span className="font-medium">Address:</span>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="flex-1 p-1 border rounded"
+                />
+              </li>
 
-                <li className="flex gap-2 mt-2">
-                  <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    <Save className="w-4 h-4" />
-                    {loading ? "Saving..." : "Save"}
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="flex items-center gap-1 px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                  >
-                    <X className="w-4 h-4" /> Cancel
-                  </button>
-                </li>
-              </>
-            ) : (
-              <>
-                {phone && (
-                  <li className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium">Phone:</span>
-                    <span>{phone}</span>
-                  </li>
-                )}
-
-                {address && (
-                  <li className="flex items-center gap-2">
-                    <Home className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium">Address:</span>
-                    <span>{address}</span>
-                  </li>
-                )}
-
-                {(phone || address) && (
-                  <li className="mt-2">
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-1 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
-                    >
-                      <Edit3 className="w-4 h-4" /> Edit
-                    </button>
-                  </li>
-                )}
-              </>
-            )}
+              <li className="flex gap-2 mt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  <Save className="w-4 h-4" />
+                  {loading ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex items-center gap-1 px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                  <X className="w-4 h-4" /> Cancel
+                </button>
+              </li>
+            </>
           </ul>
         </Row>
       )}
