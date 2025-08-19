@@ -31,7 +31,7 @@ const NavBar = () => {
   return (
     <div className="nav-container">
       <Navbar color="light" light expand="md" container={false}>
-        <Container>
+        <Container className="max-w-screen-xl">
           <NavbarBrand className="logo" />
           <NavbarToggler onClick={toggle} />
           <Collapse isOpen={isOpen} navbar>
@@ -88,9 +88,7 @@ const NavBar = () => {
                       className="nav-user-profile rounded-circle"
                       width="50"
                     />
-                    <ChevronDown
-                      className="text-gray-600 w-4 h-4"
-                    />
+                    <ChevronDown className="text-gray-600 w-4 h-4" />
                   </button>
 
                   {/* Custom Dropdown */}

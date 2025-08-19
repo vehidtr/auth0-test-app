@@ -150,7 +150,7 @@ export const ProfileComponent = () => {
   }, []);
 
   return (
-    <Container className="mb-5">
+    <Container className="mb-5 max-w-screen-xl">
       <Row className="align-items-center profile-header mb-5 text-center text-md-left">
         <Col md={2}>
           <img
