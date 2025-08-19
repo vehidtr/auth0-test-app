@@ -1,4 +1,3 @@
-import React from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
@@ -23,20 +22,16 @@ const providerConfig = {
   onRedirectCallback,
   authorizationParams: {
     redirect_uri: window.location.origin,
+    audience: process.env.REACT_APP_AUTH0_AUDIENCE,
     ...(config.audience ? { audience: config.audience } : null),
   },
 };
 
-const root = createRoot(document.getElementById('root'));
+const root = createRoot(document.getElementById("root"));
 root.render(
-  <Auth0Provider
-    {...providerConfig}
-  >
+  <Auth0Provider {...providerConfig}>
     <App />
-  </Auth0Provider>,
+  </Auth0Provider>
 );
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
 serviceWorker.unregister();
