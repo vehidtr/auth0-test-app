@@ -106,8 +106,11 @@ export const ProfileComponent = () => {
     (async () => {
       try {
         setLoading(true);
-        const { phone: p, address: a } = JSON.parse(pendingRaw);
-        await updateProfile({ phone: p, address: a });
+        const pendingData = JSON.parse(pendingRaw);
+        const pendingPhone = pendingData.phone;
+        const pendingAddress = pendingData.address;
+
+        await updateProfile({ phone: pendingPhone, address: pendingAddress });
         setMessage("✅ Saved and refreshed!");
         setIsEditing(false);
       } catch (e) {
@@ -142,115 +145,119 @@ export const ProfileComponent = () => {
 
       <hr className="py-4" />
 
-      <Row>
-        <ul className="space-y-2 text-gray-800 w-full">
-          <li className="flex items-center gap-2">
-            <User className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">Name:</span>
-            <span>{user.name}</span>
-          </li>
+      {loading ? (
+        <Loading />
+      ) : (
+        <Row>
+          <ul className="space-y-2 text-gray-800 w-full">
+            <li className="flex items-center gap-2">
+              <User className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Name:</span>
+              <span>{user.name}</span>
+            </li>
 
-          <li className="flex items-center gap-2">
-            <Signature className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">Nickname:</span>
-            <span>{user.nickname}</span>
-          </li>
+            <li className="flex items-center gap-2">
+              <Signature className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Nickname:</span>
+              <span>{user.nickname}</span>
+            </li>
 
-          <li className="flex items-center gap-2">
-            <Mail className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">Email:</span>
-            <span>{user.email}</span>
-          </li>
+            <li className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Email:</span>
+              <span>{user.email}</span>
+            </li>
 
-          <li className="flex items-center gap-2">
-            <BadgeCheck
-              className={`w-4 h-4 ${
-                user.email_verified ? "text-green-500" : "text-red-500"
-              }`}
-            />
-            <span className="font-medium">Verified:</span>
-            <span>{user.email_verified ? "Yes" : "No"}</span>
-          </li>
+            <li className="flex items-center gap-2">
+              <BadgeCheck
+                className={`w-4 h-4 ${
+                  user.email_verified ? "text-green-500" : "text-red-500"
+                }`}
+              />
+              <span className="font-medium">Verified:</span>
+              <span>{user.email_verified ? "Yes" : "No"}</span>
+            </li>
 
-          <li className="flex items-center gap-2">
-            <Hash className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">Sub:</span>
-            <span className="truncate">{user.sub}</span>
-          </li>
+            <li className="flex items-center gap-2">
+              <Hash className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Sub:</span>
+              <span className="truncate">{user.sub}</span>
+            </li>
 
-          {isEditing ? (
-            <>
-              <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Phone:</span>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 p-1 border rounded"
-                />
-              </li>
-
-              <li className="flex items-center gap-2">
-                <Home className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Address:</span>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="flex-1 p-1 border rounded"
-                />
-              </li>
-
-              <li className="flex gap-2 mt-2">
-                <button
-                  onClick={handleSave}
-                  disabled={loading}
-                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  <Save className="w-4 h-4" />
-                  {loading ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="flex items-center gap-1 px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  <X className="w-4 h-4" /> Cancel
-                </button>
-              </li>
-            </>
-          ) : (
-            <>
-              {user["https://tob/phone"] && (
+            {isEditing ? (
+              <>
                 <li className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-gray-500" />
                   <span className="font-medium">Phone:</span>
-                  <span>{user["https://tob/phone"]}</span>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="flex-1 p-1 border rounded"
+                  />
                 </li>
-              )}
 
-              {user["https://tob/address"] && (
                 <li className="flex items-center gap-2">
                   <Home className="w-4 h-4 text-gray-500" />
                   <span className="font-medium">Address:</span>
-                  <span>{user["https://tob/address"]}</span>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="flex-1 p-1 border rounded"
+                  />
                 </li>
-              )}
 
-              {user["https://tob/address"] || user["https://tob/address"] ? (
-                <li className="mt-2">
+                <li className="flex gap-2 mt-2">
                   <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-1 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    <Edit3 className="w-4 h-4" /> Edit
+                    <Save className="w-4 h-4" />
+                    {loading ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="flex items-center gap-1 px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                  >
+                    <X className="w-4 h-4" /> Cancel
                   </button>
                 </li>
-              ) : null}
-            </>
-          )}
-        </ul>
-      </Row>
+              </>
+            ) : (
+              <>
+                {user["https://tob/phone"] && (
+                  <li className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">Phone:</span>
+                    <span>{user["https://tob/phone"]}</span>
+                  </li>
+                )}
+
+                {user["https://tob/address"] && (
+                  <li className="flex items-center gap-2">
+                    <Home className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">Address:</span>
+                    <span>{user["https://tob/address"]}</span>
+                  </li>
+                )}
+
+                {user["https://tob/address"] || user["https://tob/address"] ? (
+                  <li className="mt-2">
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-1 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+                    >
+                      <Edit3 className="w-4 h-4" /> Edit
+                    </button>
+                  </li>
+                ) : null}
+              </>
+            )}
+          </ul>
+        </Row>
+      )}
 
       {message && <p className="mt-4 text-sm">{message}</p>}
     </Container>
