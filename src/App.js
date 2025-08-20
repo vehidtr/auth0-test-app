@@ -17,6 +17,7 @@ import "./App.css";
 // fontawesome
 import initFontAwesome from "./utils/initFontAwesome";
 import NotFound from "./views/NotFound";
+import TermsAndConditions from "./components/TermsAndConditions";
 initFontAwesome();
 
 const App = () => {
@@ -39,6 +40,7 @@ const App = () => {
             <Route path="/" exact component={Home} />
             <Route path="/profile" component={Profile} />
             <Route path="/about" component={AboutAuth0} />
+            <Route path="/terms" component={TermsAndConditions} />
             <Route component={NotFound} />
           </Switch>
         </Container>
