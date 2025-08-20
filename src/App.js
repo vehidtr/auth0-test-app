@@ -16,6 +16,7 @@ import "./App.css";
 
 // fontawesome
 import initFontAwesome from "./utils/initFontAwesome";
+import NotFound from "./views/NotFound";
 initFontAwesome();
 
 const App = () => {
@@ -38,6 +39,7 @@ const App = () => {
             <Route path="/" exact component={Home} />
             <Route path="/profile" component={Profile} />
             <Route path="/about" component={AboutAuth0} />
+            <Route component={NotFound} />
           </Switch>
         </Container>
         <Footer />
