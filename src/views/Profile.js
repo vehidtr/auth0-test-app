@@ -72,10 +72,7 @@ export const ProfileComponent = () => {
         },
         body: JSON.stringify({
           user_metadata: {
-            account: {
-              phone,
-              address,
-            },
+            account: { phone, address },
             ...(accept_terms !== undefined ? { accept_terms } : {}),
           },
         }),
@@ -87,7 +84,7 @@ export const ProfileComponent = () => {
       throw new Error(errData.message || response.statusText);
     }
 
-    // Force silent token refresh to get updated claims
+    // Force claims refresh
     await getAccessTokenSilently({
       authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE },
       cacheMode: "off",
@@ -129,6 +126,31 @@ export const ProfileComponent = () => {
     }
   };
 
+  const handleAcceptTerms = async () => {
+    try {
+      setMessage("");
+      setShowModal(false);
+
+      sessionStorage.setItem(
+        PENDING_KEY,
+        JSON.stringify({ phone, address, accept_terms: true, sub: user.sub })
+      );
+
+      await loginWithRedirect({
+        authorizationParams: {
+          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
+          scope: "update:current_user_metadata",
+          redirect_uri: window.location.origin,
+          prompt: "login",
+        },
+        appState: { returnTo: window.location.pathname },
+      });
+    } catch (e) {
+      console.error(e);
+      setMessage("❌ Failed to accept terms: " + e.message);
+    }
+  };
+
   // Resume any pending update after redirect
   useEffect(() => {
     const pendingRaw = sessionStorage.getItem(PENDING_KEY);
@@ -140,16 +162,21 @@ export const ProfileComponent = () => {
         const {
           phone: pendingPhone,
           address: pendingAddress,
+          accept_terms,
           sub: originalSub,
         } = JSON.parse(pendingRaw);
 
-        // Prevent cross-account update
         if (user.sub !== originalSub) {
           setMessage("❌ Logged in as a different account. Update cancelled.");
           return;
         }
 
-        await updateProfile({ phone: pendingPhone, address: pendingAddress });
+        await updateProfile({
+          phone: pendingPhone,
+          address: pendingAddress,
+          accept_terms,
+        });
+
         setMessage("✅ Saved and refreshed!");
       } catch (e) {
         console.error(e);
@@ -169,18 +196,6 @@ export const ProfileComponent = () => {
     const div = termsRef.current;
     if (div && div.scrollTop + div.clientHeight >= div.scrollHeight - 5) {
       setCanAccept(true);
-    }
-  };
-
-  const handleAcceptTerms = async () => {
-    try {
-      await updateProfile({ phone, address, accept_terms: true });
-      setAcceptedTerms(true);
-      setShowModal(false);
-      setMessage("✅ Terms accepted!");
-    } catch (e) {
-      console.error(e);
-      setMessage("❌ Failed to accept terms: " + e.message);
     }
   };
 
@@ -340,7 +355,7 @@ export const ProfileComponent = () => {
               </p>
             </div>
 
-            <p className="text-slate-400 text-center text-xs mb-4">
+            <p className="text-slate-400 text-center text-xs mb-4 font-italic">
               Scroll to the bottom to enable the "Accept" button.
             </p>
 

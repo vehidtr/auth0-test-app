@@ -38,7 +38,7 @@ const TermsAndConditions = ({ acceptedTerms, setShowModal }) => {
         )}
       </span>
       <p>
-        I accept the <span className="underline">terms</span> and conditions
+        I accept the terms and conditions
       </p>
     </label>
   );
