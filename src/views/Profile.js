@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Container, Row, Col } from "reactstrap";
 import Loading from "../components/Loading";
 import { useAuth0, withAuthenticationRequired } from "@auth0/auth0-react";
@@ -11,7 +11,10 @@ import {
   Phone,
   Home,
   Save,
+  X,
+  Check,
 } from "lucide-react";
+import TermsAndConditions from "../components/TermsAndConditions";
 
 const PENDING_KEY = "pendingProfileUpdate";
 
@@ -26,6 +29,13 @@ export const ProfileComponent = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // terms state
+  const [showModal, setShowModal] = useState(false);
+  const [canAccept, setCanAccept] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const termsRef = useRef(null);
+
   // Load initial values from ID token claims
   useEffect(() => {
     const loadClaims = async () => {
@@ -35,11 +45,16 @@ export const ProfileComponent = () => {
       setAddress(account.address || "");
       setOriginalPhone(account.phone || "");
       setOriginalAddress(account.address || "");
+
+      // preload accept_terms if exists
+      if (claims?.accept_terms) {
+        setAcceptedTerms(claims.accept_terms);
+      }
     };
     loadClaims();
   }, [getIdTokenClaims]);
 
-  const updateProfile = async ({ phone, address }) => {
+  const updateProfile = async ({ phone, address, accept_terms }) => {
     const token = await getAccessTokenSilently({
       authorizationParams: {
         audience: process.env.REACT_APP_AUTH0_AUDIENCE,
@@ -57,7 +72,11 @@ export const ProfileComponent = () => {
         },
         body: JSON.stringify({
           user_metadata: {
-            account: { phone, address },
+            account: {
+              phone,
+              address,
+            },
+            ...(accept_terms !== undefined ? { accept_terms } : {}),
           },
         }),
       }
@@ -78,8 +97,9 @@ export const ProfileComponent = () => {
     const account = newClaims?.account || {};
     setPhone(account.phone || "");
     setAddress(account.address || "");
-    setOriginalPhone(account.phone || "");
-    setOriginalAddress(account.address || "");
+    if (newClaims?.accept_terms) {
+      setAcceptedTerms(newClaims.accept_terms);
+    }
   };
 
   const handleSave = async () => {
@@ -143,6 +163,26 @@ export const ProfileComponent = () => {
 
   // Detect if values changed
   const isChanged = phone !== originalPhone || address !== originalAddress;
+
+  // Scroll detection for modal
+  const handleScroll = () => {
+    const div = termsRef.current;
+    if (div && div.scrollTop + div.clientHeight >= div.scrollHeight - 5) {
+      setCanAccept(true);
+    }
+  };
+
+  const handleAcceptTerms = async () => {
+    try {
+      await updateProfile({ phone, address, accept_terms: true });
+      setAcceptedTerms(true);
+      setShowModal(false);
+      setMessage("✅ Terms accepted!");
+    } catch (e) {
+      console.error(e);
+      setMessage("❌ Failed to accept terms: " + e.message);
+    }
+  };
 
   return (
     <Container className="mb-5 max-w-screen-xl">
@@ -238,12 +278,97 @@ export const ProfileComponent = () => {
                   {loading ? "Saving..." : "Save"}
                 </button>
               </li>
+
+              <li className="flex gap-2 mt-4 items-center">
+                <TermsAndConditions
+                  acceptedTerms={acceptedTerms}
+                  setShowModal={setShowModal}
+                />
+              </li>
             </>
           </ul>
         </Row>
       )}
 
       {message && <p className="mt-4 text-sm">{message}</p>}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+            <h2 className="text-lg font-bold mb-2">Terms and Conditions</h2>
+            <div
+              ref={termsRef}
+              onScroll={handleScroll}
+              className="h-40 overflow-y-scroll border p-2 mb-1 text-sm space-y-3"
+            >
+              <p>
+                Welcome to <strong>auth0</strong>. By using our services, you
+                agree to the following terms and conditions. Please read them
+                carefully before accepting.
+              </p>
+
+              <p>
+                <strong>1. Use of Service:</strong> You agree to use this
+                service only for lawful purposes and in compliance with all
+                applicable laws and regulations.
+              </p>
+
+              <p>
+                <strong>2. Account Information:</strong> You are responsible for
+                keeping your profile information accurate and up to date. Do not
+                share your account credentials with others.
+              </p>
+
+              <p>
+                <strong>3. Privacy:</strong> We respect your privacy. Your data
+                will only be used in accordance with our Privacy Policy and will
+                never be shared with third parties without your consent, except
+                where required by law.
+              </p>
+
+              <p>
+                <strong>4. Limitation of Liability:</strong> We make reasonable
+                efforts to provide a reliable service, but we are not liable for
+                any damages or data loss caused by the use of this service.
+              </p>
+
+              <p>
+                <strong>5. Changes:</strong> We may update these terms from time
+                to time. Continued use of the service means you agree to the
+                updated terms.
+              </p>
+            </div>
+
+            <p className="text-slate-400 text-center text-xs mb-4">
+              Scroll to the bottom to enable the "Accept" button.
+            </p>
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-3 py-1 rounded bg-gray-300 hover:bg-gray-400 flex items-center gap-1"
+                onClick={() => {
+                  setShowModal(false);
+                  setCanAccept(false);
+                }}
+              >
+                <X className="w-4 h-4" /> Cancel
+              </button>
+              <button
+                disabled={!canAccept}
+                onClick={handleAcceptTerms}
+                className={`px-3 py-1 rounded flex items-center gap-1 ${
+                  canAccept
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-gray-400 cursor-not-allowed text-white"
+                }`}
+              >
+                <Check className="w-4 h-4" /> Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 };
