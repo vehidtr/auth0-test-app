@@ -10,9 +10,7 @@ import {
   Hash,
   Phone,
   Home,
-  Edit3,
   Save,
-  X,
 } from "lucide-react";
 
 const PENDING_KEY = "pendingProfileUpdate";
@@ -21,9 +19,10 @@ export const ProfileComponent = () => {
   const { user, getAccessTokenSilently, getIdTokenClaims, loginWithRedirect } =
     useAuth0();
 
-  const [isEditing, setIsEditing] = useState(false);
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [originalPhone, setOriginalPhone] = useState("");
+  const [originalAddress, setOriginalAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -34,6 +33,8 @@ export const ProfileComponent = () => {
       const account = claims?.account || {};
       setPhone(account.phone || "");
       setAddress(account.address || "");
+      setOriginalPhone(account.phone || "");
+      setOriginalAddress(account.address || "");
     };
     loadClaims();
   }, [getIdTokenClaims]);
@@ -77,6 +78,8 @@ export const ProfileComponent = () => {
     const account = newClaims?.account || {};
     setPhone(account.phone || "");
     setAddress(account.address || "");
+    setOriginalPhone(account.phone || "");
+    setOriginalAddress(account.address || "");
   };
 
   const handleSave = async () => {
@@ -128,7 +131,6 @@ export const ProfileComponent = () => {
 
         await updateProfile({ phone: pendingPhone, address: pendingAddress });
         setMessage("✅ Saved and refreshed!");
-        setIsEditing(false);
       } catch (e) {
         console.error(e);
         setMessage("❌ Error applying saved changes: " + e.message);
@@ -138,6 +140,9 @@ export const ProfileComponent = () => {
       }
     })();
   }, [user.sub]);
+
+  // Detect if values changed
+  const isChanged = phone !== originalPhone || address !== originalAddress;
 
   return (
     <Container className="mb-5 max-w-screen-xl">
@@ -222,17 +227,15 @@ export const ProfileComponent = () => {
               <li className="flex gap-2 mt-2">
                 <button
                   onClick={handleSave}
-                  disabled={loading}
-                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  disabled={loading || !isChanged}
+                  className={`flex items-center gap-1 px-3 py-1 rounded ${
+                    loading || !isChanged
+                      ? "bg-gray-400 cursor-not-allowed text-white"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
                 >
                   <Save className="w-4 h-4" />
                   {loading ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="flex items-center gap-1 px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  <X className="w-4 h-4" /> Cancel
                 </button>
               </li>
             </>
