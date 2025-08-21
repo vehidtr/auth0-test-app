@@ -108,7 +108,7 @@ export const ProfileComponent = () => {
       setOriginalPhone(acct.phone || "");
       setOriginalAddress(acct.address || "");
 
-      setMessage("✅ Profile updated!");
+      setMessage("✅ Profile updated!"); // update message
     } catch (err) {
       console.error(err);
       setMessage("❌ Error: " + err.message);

@@ -1,23 +1,36 @@
-// CORS headers
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+
+export function getCorsHeaders(origin) {
+  const allowed = (process.env.REACT_APP_BASE_URL || "")
+    .split(",")
+    .map((o) => o.trim());
+
+  if (origin && allowed.includes(origin)) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      Vary: "Origin",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    };
+  }
+
+  return {
+    "Access-Control-Allow-Origin": "null",
+  };
+}
 
 // Handle OPTIONS preflight
 export function handleOptions(event) {
+  const headers = getCorsHeaders(event.headers.origin);
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
-      headers: corsHeaders,
+      headers,
       body: "Preflight OK",
     };
   }
-  return null; // not OPTIONS
+  return null;
 }
 
-// Get Auth0 management token
 export async function getManagementToken() {
   const res = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
     method: "POST",

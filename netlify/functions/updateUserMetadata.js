@@ -1,13 +1,15 @@
 import {
-  corsHeaders,
   handleOptions,
   getManagementToken,
+  getCorsHeaders,
 } from "./utils/auth0.js";
 
 export async function handler(event) {
   // Handle CORS preflight
   const optionsResp = handleOptions(event);
   if (optionsResp) return optionsResp;
+
+  const corsHeaders = getCorsHeaders(event.headers.origin);
 
   if (event.httpMethod !== "POST") {
     return {
@@ -21,7 +23,6 @@ export async function handler(event) {
     const { userId, user_metadata } = JSON.parse(event.body);
     const token = await getManagementToken();
 
-    // Update Auth0 metadata
     const res = await fetch(
       `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(
         userId
