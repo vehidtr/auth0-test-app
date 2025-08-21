@@ -13,11 +13,8 @@ import {
   Save,
 } from "lucide-react";
 
-const PENDING_KEY = "pendingProfileUpdate";
-
 export const ProfileComponent = () => {
-  const { user, getAccessTokenSilently, getIdTokenClaims, loginWithRedirect } =
-    useAuth0();
+  const { user } = useAuth0();
 
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -26,126 +23,100 @@ export const ProfileComponent = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Load initial values from ID token claims
-  useEffect(() => {
-    const loadClaims = async () => {
-      const claims = await getIdTokenClaims();
-      const account = claims?.account || {};
-      setPhone(account.phone || "");
-      setAddress(account.address || "");
-      setOriginalPhone(account.phone || "");
-      setOriginalAddress(account.address || "");
-    };
-    loadClaims();
-  }, [getIdTokenClaims]);
+  const API_BASE = process.env.REACT_APP_API_BASE || "";
 
-  const updateProfile = async ({ phone, address, accept_terms }) => {
-    const token = await getAccessTokenSilently({
-      authorizationParams: {
-        audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-        scope: "update:current_user_metadata",
-      },
+  const fetchProfile = async (userId) => {
+    const res = await fetch(`${API_BASE}/.netlify/functions/getUserMetadata`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
     });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(txt || "Failed to fetch profile");
+    }
+    const data = await res.json();
+    return data;
+  };
 
-    const response = await fetch(
-      `https://${process.env.REACT_APP_AUTH0_DOMAIN}/api/v2/users/${user.sub}`,
+  const updateProfile = async (userId, nextPhone, nextAddress) => {
+    const res = await fetch(
+      `${API_BASE}/.netlify/functions/updateUserMetadata`,
       {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          userId,
           user_metadata: {
-            account: { phone, address },
-            ...(accept_terms !== undefined ? { accept_terms } : {}),
+            account: { phone: nextPhone, address: nextAddress },
           },
         }),
       }
     );
 
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.message || response.statusText);
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      throw new Error(err || "Failed to update profile");
     }
-
-    // Force claims refresh
-    await getAccessTokenSilently({
-      authorizationParams: { audience: process.env.REACT_APP_AUTH0_AUDIENCE },
-      cacheMode: "off",
-    });
-
-    const newClaims = await getIdTokenClaims();
-    const account = newClaims?.account || {};
-    setPhone(account.phone || "");
-    setAddress(account.address || "");
+    return res.json();
   };
 
+  useEffect(() => {
+    if (!user?.sub) return;
+
+    const localAccount = user?.user_metadata?.account || {};
+    setPhone(localAccount.phone || "");
+    setAddress(localAccount.address || "");
+    setOriginalPhone(localAccount.phone || "");
+    setOriginalAddress(localAccount.address || "");
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const freshUser = await fetchProfile(user.sub);
+        if (cancelled) return;
+        const acct = freshUser?.user_metadata?.account || {};
+        setPhone(acct.phone || "");
+        setAddress(acct.address || "");
+        setOriginalPhone(acct.phone || "");
+        setOriginalAddress(acct.address || "");
+      } catch (e) {
+        console.error("fetchProfile failed:", e);
+        setMessage("⚠️ Could not load latest profile.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.sub]);
+
   const handleSave = async () => {
+    if (!user?.sub) return;
+    setLoading(true);
+    setMessage("");
     try {
-      setLoading(true);
-      setMessage("");
+      await updateProfile(user.sub, phone, address);
 
-      sessionStorage.setItem(
-        PENDING_KEY,
-        JSON.stringify({ phone, address, sub: user.sub })
-      );
+      const updatedUser = await fetchProfile(user.sub);
+      const acct = updatedUser?.user_metadata?.account || {};
+      setPhone(acct.phone || "");
+      setAddress(acct.address || "");
+      setOriginalPhone(acct.phone || "");
+      setOriginalAddress(acct.address || "");
 
-      await loginWithRedirect({
-        authorizationParams: {
-          audience: process.env.REACT_APP_AUTH0_AUDIENCE,
-          scope: "update:current_user_metadata",
-          redirect_uri: window.location.origin,
-          prompt: "login",
-        },
-        appState: { returnTo: window.location.pathname },
-      });
+      setMessage("✅ Profile updated!");
     } catch (err) {
       console.error(err);
-      setMessage("❌ Error updating profile: " + err.message);
+      setMessage("❌ Error: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Resume any pending update after redirect
-  useEffect(() => {
-    const pendingRaw = sessionStorage.getItem(PENDING_KEY);
-    if (!pendingRaw) return;
-
-    (async () => {
-      try {
-        setLoading(true);
-        const {
-          phone: pendingPhone,
-          address: pendingAddress,
-          accept_terms,
-          sub: originalSub,
-        } = JSON.parse(pendingRaw);
-
-        if (user.sub !== originalSub) {
-          setMessage("❌ Logged in as a different account. Update cancelled.");
-          return;
-        }
-
-        await updateProfile({
-          phone: pendingPhone,
-          address: pendingAddress,
-          accept_terms,
-        });
-
-        setMessage("✅ Saved and refreshed!");
-      } catch (e) {
-        console.error(e);
-        setMessage("❌ Error applying saved changes: " + e.message);
-      } finally {
-        sessionStorage.removeItem(PENDING_KEY);
-        setLoading(false);
-      }
-    })();
-  }, [user.sub]);
-
-  // Detect if values changed
   const isChanged = phone !== originalPhone || address !== originalAddress;
 
   return (
@@ -205,44 +176,42 @@ export const ProfileComponent = () => {
               <span className="truncate">{user.sub}</span>
             </li>
 
-            <>
-              <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Phone:</span>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 p-1 border rounded"
-                />
-              </li>
+            <li className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Phone:</span>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="flex-1 p-1 border rounded"
+              />
+            </li>
 
-              <li className="flex items-center gap-2">
-                <Home className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Address:</span>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="flex-1 p-1 border rounded"
-                />
-              </li>
+            <li className="flex items-center gap-2">
+              <Home className="w-4 h-4 text-gray-500" />
+              <span className="font-medium">Address:</span>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="flex-1 p-1 border rounded"
+              />
+            </li>
 
-              <li className="flex gap-2 mt-2">
-                <button
-                  onClick={handleSave}
-                  disabled={loading || !isChanged}
-                  className={`flex items-center gap-1 px-3 py-1 rounded ${
-                    loading || !isChanged
-                      ? "bg-gray-400 cursor-not-allowed text-white"
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
-                  }`}
-                >
-                  <Save className="w-4 h-4" />
-                  {loading ? "Saving..." : "Save"}
-                </button>
-              </li>
-            </>
+            <li className="flex gap-2 mt-2">
+              <button
+                onClick={handleSave}
+                disabled={loading || !isChanged}
+                className={`flex items-center gap-1 px-3 py-1 rounded ${
+                  loading || !isChanged
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
+              >
+                <Save className="w-4 h-4" />
+                {loading ? "Saving..." : "Save"}
+              </button>
+            </li>
           </ul>
         </Row>
       )}
