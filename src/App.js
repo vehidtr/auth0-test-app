@@ -33,15 +33,18 @@ const App = () => {
     const fetchLatestTerms = async () => {
       try {
         const res = await fetch(`${API_BASE}/.netlify/functions/getTerms`);
+        if (!res.ok) throw new Error(`Failed to fetch terms: ${res.status}`);
         const data = await res.json();
 
-        const latest =
-          data.latest ||
-          data.all.sort(
+        const latest = data.latest;
+        if (latest) {
+          setLatestVersion(latest.id);
+        } else if (data.all && data.all.length > 0) {
+          const fallback = data.all.sort(
             (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
           )[0];
-
-        setLatestVersion(latest.id);
+          setLatestVersion(fallback.id);
+        }
       } catch (err) {
         console.error("Error fetching terms:", err);
       }
