@@ -56,6 +56,7 @@ const App = () => {
     if (isAuthenticated && user && latestVersion) {
       const accepted =
         user["https://tob.ba/app_metadata"]?.acceptedTermsOfUse || [];
+
       setTermsAccepted(accepted.includes(latestVersion));
       setTermsChecked(true);
     } else if (!isAuthenticated) {

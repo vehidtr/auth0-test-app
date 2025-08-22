@@ -9,7 +9,6 @@ export async function handler(event) {
   const corsHeaders = getCorsHeaders(event.headers.origin);
 
   try {
-    // __dirname equivalent in Netlify = path.resolve()
     const filePath = path.resolve("netlify/functions/data/terms.json");
 
     console.log("🔎 Looking for terms.json at:", filePath);
